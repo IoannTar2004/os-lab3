@@ -1,0 +1,13 @@
+{
+    "files.associations": {
+        "kernel.h": "c",
+        "mman.h": "c",
+        "init.h": "c",
+        "module.h": "c",
+        "tcp.h": "c",
+        "rculist.h": "c",
+        "inet_hashtables.h": "c",
+        "netdb.h": "c"
+    },
+    "C_Cpp.errorSquiggles": "disabled"
+}
