@@ -1,21 +1,21 @@
 MODULE_NAME := my_ss_module
+USER_NAME := my_ss
 
 KERNEL_DIR := /lib/modules/$(shell uname -r)/build
-PROJ_DIR := /home/ivan_linux/Documents/projects/lab3
-
-SRC_FILES := $(shell find $(PROJ_DIR) -type f -name "*.c")
-OBJ_FILES := $(patsubst $(PROJ_DIR)/src/%.c, src/%.o, $(SRC_FILES))
 
 obj-m += $(MODULE_NAME).o
-$(MODULE_NAME)-objs := $(OBJ_FILES)
+$(MODULE_NAME)-objs := src/$(MODULE_NAME).o
 
 PWD := $(CURDIR)
 
-all:
+all: module
+	rm -rf $(shell find . -type f \( -name "*.cmd" -o -name "*.o" -o -name "Module.symvers" -o -name "modules.order" -o -name "*.mod*" \))
+
+module: user
 	make -C $(KERNEL_DIR) M=$(PWD) modules
 
-module: all
-	rm -rf $(shell find . -type f \( -name "*.cmd" -o -name "*.o" -o -name "Module.symvers" -o -name "modules.order" -o -name "*.mod*" \))
+user:
+	gcc -o $(USER_NAME) src/$(USER_NAME).c
 
 clean:
 	make -C $(KERNEL_DIR) M=$(PWD) clean

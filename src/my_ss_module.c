@@ -3,8 +3,12 @@
 #include <linux/proc_fs.h>
 #include <linux/uaccess.h> 
 #include <linux/seq_file.h>
+#include <linux/string.h>
 #include <net/tcp.h>
 #include <net/udp.h>
+
+#define MAX_LEN 32
+static char filter_buffer[MAX_LEN];
 
 const char *tcp_state_to_string(int state) {
     switch (state) {
@@ -20,11 +24,11 @@ const char *tcp_state_to_string(int state) {
         case TCP_LISTEN: return "LISTEN";
         case TCP_CLOSING: return "CLOSING";
         case TCP_NEW_SYN_RECV: return "NEW_SYN_RECV";
-        default: return "UNKNOWN";
+        default: return "NOSTATE";
     }
 }
 
-static int tcp_show(struct seq_file* m, void* v) {
+static void tcp_show(struct seq_file* m, char* state, int filter_on) {
 	struct sock *sk;
     struct hlist_nulls_node *node;
     unsigned int bucket;
@@ -36,21 +40,21 @@ static int tcp_show(struct seq_file* m, void* v) {
 
     for (bucket = 0; bucket <= tcp_hashinfo.ehash_mask; bucket++) {
         sk_nulls_for_each(sk, node, &tcp_hashinfo.ehash[bucket].chain) {
-            struct inet_sock *inet = inet_sk(sk);
-            unsigned int recv_q = sk_rmem_alloc_get(sk);
-            unsigned int send_q = sk_wmem_alloc_get(sk);
+            if (!filter_on || !strcmp(tcp_state_to_string(sk->sk_state), state)) {
+                struct inet_sock *inet = inet_sk(sk);
+                unsigned int recv_q = sk_rmem_alloc_get(sk);
+                unsigned int send_q = sk_wmem_alloc_get(sk);
 
-            seq_printf(m, "%-15s %-8u %-8u %-pI4:%-10u %-pI4:%-6u\n",
-                    tcp_state_to_string(sk->sk_state), recv_q, send_q,
-                    &inet->inet_saddr, ntohs(inet->inet_sport),
-                    &inet->inet_daddr, ntohs(inet->inet_dport));
+                seq_printf(m, "%-15s %-8u %-8u %-pI4:%-10u %-pI4:%-6u\n",
+                        tcp_state_to_string(sk->sk_state), recv_q, send_q,
+                        &inet->inet_saddr, ntohs(inet->inet_sport),
+                        &inet->inet_daddr, ntohs(inet->inet_dport));
+            }
         }
     }
-
-    return 0;
 }
 
-static int udp_show(struct seq_file* m, void* v) {
+static void udp_show(struct seq_file* m) {
 	struct sock *sk;
     struct hlist_nulls_node *node;
     unsigned int bucket;
@@ -66,18 +70,36 @@ static int udp_show(struct seq_file* m, void* v) {
             unsigned int recv_q = sk_rmem_alloc_get(sk);
             unsigned int send_q = sk_wmem_alloc_get(sk);
 
-            seq_printf(m, "%-8u %-8u %-pI4:%-10u %-pI4:%-6u\n",
+            seq_printf(m, "%-8u %-8u %-pI4:%-12u %-pI4:%-6u\n",
                     recv_q, send_q, &inet->inet_saddr, 
                     ntohs(inet->inet_sport), &inet->inet_daddr, 
                     ntohs(inet->inet_dport));
         }
     }
+}
 
+static int get_ss_info(struct seq_file* m, void* v) {
+    if (!strcmp(filter_buffer, "udp") || !strcmp(filter_buffer, "-"))
+        udp_show(m);
+    if (strcmp(filter_buffer, "udp"))
+        tcp_show(m, filter_buffer, strcmp(filter_buffer, "tcp") && strcmp(filter_buffer, "-"));
     return 0;
 }
 
 static int proc_open(struct inode* inode, struct file* file) {
-    return single_open(file, udp_show, NULL);
+    return single_open(file, get_ss_info, NULL);
+}
+
+static ssize_t write_flags_to_buffer(struct file *file, const char __user *buffer, size_t count, loff_t *pos) {
+    if (count > MAX_LEN - 1) // Убедимся, что буфер не переполняется
+        return -EINVAL;
+
+    if (copy_from_user(filter_buffer, buffer, count)) // Копируем данные из пользовательского пространства
+        return -EFAULT;
+
+    filter_buffer[count] = '\0'; // Добавляем завершающий ноль
+    pr_info("%s\n", filter_buffer);
+    return count;
 }
 
 static const char* procfs_name = "my_ss_module";
@@ -88,6 +110,7 @@ static const struct proc_ops proc_file_fops = {
     .proc_read = seq_read,
     .proc_lseek = seq_lseek,
     .proc_release = single_release,
+    .proc_write = write_flags_to_buffer
 }; 
 
 static int __init procfs_init(void) { 

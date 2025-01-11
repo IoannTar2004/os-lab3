@@ -7,7 +7,8 @@
         "tcp.h": "c",
         "rculist.h": "c",
         "inet_hashtables.h": "c",
-        "netdb.h": "c"
+        "netdb.h": "c",
+        "string.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }
