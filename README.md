@@ -57,6 +57,6 @@ Recv-Q   Send-Q   Local Address:Port   Remote Address:Port
 
 ### Примеры
 
-![1](https://github.com/IoannTar2004/os-lab3/imgs/1.jpg)
+![1](https://github.com/IoannTar2004/os-lab3/blob/main/imgs/1.jpg)
 
-![2](https://github.com/IoannTar2004/os-lab3/imgs/2.jpg)
+![2](https://github.com/IoannTar2004/os-lab3/blob/main/imgs/2.jpg)
