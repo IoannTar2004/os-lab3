@@ -10,7 +10,7 @@
 #define MAX_LEN 32
 static char filter_buffer[MAX_LEN];
 
-const char *tcp_state_to_string(int state) {
+char* tcp_state_to_string(int state) {
     switch (state) {
         case TCP_ESTABLISHED: return "ESTABLISHED";
         case TCP_SYN_SENT: return "SYN_SENT";
@@ -24,7 +24,7 @@ const char *tcp_state_to_string(int state) {
         case TCP_LISTEN: return "LISTEN";
         case TCP_CLOSING: return "CLOSING";
         case TCP_NEW_SYN_RECV: return "NEW_SYN_RECV";
-        default: return "NOSTATE";
+        default: return "UNKNOWN";
     }
 }
 
